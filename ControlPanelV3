@@ -1,0 +1,353 @@
+#!/usr/bin/python
+# -*- coding: iso-8859-1 -*-
+
+import Tkinter
+from Servo import *
+import math
+import time
+import threading
+
+class controlPanelGUI(Tkinter.Tk):
+
+# CONSTRUCTOR
+
+    def __init__(self,parent):
+        Tkinter.Tk.__init__(self,parent)
+        self.parent = parent
+        self.initializeServo()
+        self.initializeGui()
+
+
+# INITIALIZE METHODS
+
+    def initializeGui(self):
+        self.grid()
+        self.initializeHand()
+        self.initializeWrist()
+        self.initializeContVars()
+        self.initializeRotation()
+
+        #Frame Specifics
+        self.grid_columnconfigure(0,weight=1)
+        self.resizable(False,False)
+        self.update()
+        self.geometry('800x400+100+100')    
+        self.angleEntryHand.focus_set()
+        self.angleEntryHand.selection_range(0, Tkinter.END)
+
+    def initializeServo(self):
+        global dyn
+        global grasperServ
+        global wristServ
+
+        dyn = USB2Dynamixel_Device('/dev/ttyUSB0', 1000000)
+        grasperServ = Robotis_Servo( dyn, 1, "AX")
+        wristServ = Robotis_Servo( dyn, 2, "AX")
+
+    def initializeContVars(self):
+        global grasperContTurn_CCW
+        global wristContTurn_CCW
+        global rotMode
+        global minAngleRot  
+
+        grasperContTurn_CCW = True
+        wristContTurn_CCW = True
+        rotMode = False
+        minAngleRot = 2
+
+    def initializeHand(self):
+        #Angle Entry Box
+        self.angleEntryVariableHand = Tkinter.StringVar()
+        self.angleEntryHand = Tkinter.Entry(self,
+            textvariable=self.angleEntryVariableHand)
+        self.angleEntryHand.grid(column=0,row=0,sticky='EW')
+        self.angleEntryHand.bind("<Return>", self.Hand_OnPressEnter_Angle)
+        self.angleEntryVariableHand.set(u"Enter Angle Here")
+
+        #Angle Entry Button
+        angleEnterButtonHand = Tkinter.Button(self,text=u"Enter",
+            command=self.Hand_OnPressButton_Angle)
+        angleEnterButtonHand.grid(column=1,row=0)
+
+        #Angle Info Box
+        self.angleLabelVariableHand = Tkinter.StringVar()
+        angleLabelHand = Tkinter.Label(self,textvariable=self.angleLabelVariableHand,
+                              anchor="w",fg="white",bg="blue")
+        angleLabelHand.grid(column=0,row=1,columnspan=2,sticky='EW')
+        self.angleLabelVariableHand.set(u"Angle: "+str(round(float(math.degrees(grasperServ.read_angle())),2))+" Deg")
+
+        #Load Info Box
+        self.loadLabelVariableHand = Tkinter.StringVar()
+        loadLabelHand = Tkinter.Label(self,textvariable=self.loadLabelVariableHand,
+                              anchor="w",fg="white",bg="red")
+        loadLabelHand.grid(column=0,row=2,columnspan=2,sticky='EW')
+        self.loadLabelVariableHand.set(u"Load: "+str(int(grasperServ.read_load()))+" Units")
+
+        #Temp Info Box
+        self.tempLabelVariableHand = Tkinter.StringVar()
+        tempLabelHand = Tkinter.Label(self,textvariable=self.tempLabelVariableHand,
+                              anchor="w",fg="white",bg="purple")
+        tempLabelHand.grid(column=0,row=3,columnspan=2,sticky='EW')
+        self.tempLabelVariableHand.set(u"Temp: "+str(int(grasperServ.read_temperature()))+" Deg")
+
+        #Voltage Info Box
+        self.voltLabelVariableHand = Tkinter.StringVar()
+        voltLabelHand = Tkinter.Label(self,textvariable=self.voltLabelVariableHand,
+                              anchor="w",fg="white",bg="orange")
+        voltLabelHand.grid(column=0,row=4,columnspan=2,sticky='EW')
+        self.voltLabelVariableHand.set(u"Voltage: "+str(int(grasperServ.read_voltage()))+" V")
+
+        #Proportional Info Box
+        self.propLabelVariableHand = Tkinter.StringVar()
+        propLabelHand = Tkinter.Label(self,textvariable=self.propLabelVariableHand,
+                              anchor="w",fg="white",bg="blue")
+        propLabelHand.grid(column=0,row=5,columnspan=2,sticky='EW')
+        self.propLabelVariableHand.set(u"Proportional Gain: "+str(int(grasperServ.read_propGain()))+" Units")
+
+        #Derivative Info Box
+        self.dervLabelVariableHand = Tkinter.StringVar()
+        dervLabelHand = Tkinter.Label(self,textvariable=self.dervLabelVariableHand,
+                              anchor="w",fg="white",bg="red")
+        dervLabelHand.grid(column=0,row=6,columnspan=2,sticky='EW')
+        self.dervLabelVariableHand.set(u"Derivative Gain: "+str(int(grasperServ.read_dervGain()))+" Units")
+
+        #Integral Info Box
+        self.integLabelVariableHand = Tkinter.StringVar()
+        integLabelHand = Tkinter.Label(self,textvariable=self.integLabelVariableHand,
+                              anchor="w",fg="white",bg="purple")
+        integLabelHand.grid(column=0,row=7,columnspan=2,sticky='EW')
+        self.integLabelVariableHand.set(u"Integral Gain: "+str(int(grasperServ.read_intGain()))+" Units")
+
+        #Speed Entry Box
+        self.speedEntryVariableHand = Tkinter.StringVar()
+        self.speedEntryHand = Tkinter.Entry(self,
+            textvariable=self.speedEntryVariableHand)
+        self.speedEntryHand.grid(column=0,row=8,sticky='EW')
+        self.speedEntryHand.bind("<Return>", self.Hand_OnPressEnter_Speed)
+        self.speedEntryVariableHand.set(u"Enter Speed (rpm)")
+
+        #Speed Entry Button
+        speedEnterButtonHand = Tkinter.Button(self,text=u"Enter",
+            command=self.Hand_OnPressButton_Speed)
+        speedEnterButtonHand.grid(column=1,row=8)
+
+        #Speed Info Box
+        self.speedLabelVariableHand = Tkinter.StringVar()
+        speedLabelHand = Tkinter.Label(self,textvariable=self.speedLabelVariableHand,
+                              anchor="w",fg="white",bg="blue")
+        speedLabelHand.grid(column=0,row=9,columnspan=2,sticky='EW')
+        self.speedLabelVariableHand.set(u"Speed: " + self.speedLabelVariableHand.get())
+
+    def initializeWrist(self):
+        #Angle Entry Box
+        self.angleEntryVariableWrist = Tkinter.StringVar()
+        self.angleEntryWrist = Tkinter.Entry(self,
+            textvariable=self.angleEntryVariableWrist)
+        self.angleEntryWrist.grid(column=3,row=0,sticky='EW')
+        self.angleEntryWrist.bind("<Return>", self.Wrist_OnPressEnter_Angle)
+        self.angleEntryVariableWrist.set(u"Enter Angle Here")
+
+        #Angle Entry Button
+        angleEnterButtonWrist = Tkinter.Button(self,text=u"Enter",
+            command=self.Wrist_OnPressButton_Angle)
+        angleEnterButtonWrist.grid(column=4,row=0)
+
+        #Angle Info Box
+        self.angleLabelVariableWrist = Tkinter.StringVar()
+        angleLabelWrist = Tkinter.Label(self,textvariable=self.angleLabelVariableWrist,
+                              anchor="w",fg="white",bg="blue")
+        angleLabelWrist.grid(column=3,row=1,columnspan=2,sticky='EW')
+        self.angleLabelVariableWrist.set(u"Angle: "+str(round(float(math.degrees(wristServ.read_angle())),2))+" Deg")
+
+        #Load Info Box
+        self.loadLabelVariableWrist = Tkinter.StringVar()
+        loadLabelWrist = Tkinter.Label(self,textvariable=self.loadLabelVariableWrist,
+                              anchor="w",fg="white",bg="red")
+        loadLabelWrist.grid(column=3,row=2,columnspan=2,sticky='EW')
+        self.loadLabelVariableWrist.set(u"Load: "+str(int(wristServ.read_load()))+" Units")
+
+        #Temp Info Box
+        self.tempLabelVariableWrist = Tkinter.StringVar()
+        tempLabelWrist = Tkinter.Label(self,textvariable=self.tempLabelVariableWrist,
+                              anchor="w",fg="white",bg="purple")
+        tempLabelWrist.grid(column=3,row=3,columnspan=2,sticky='EW')
+        self.tempLabelVariableWrist.set(u"Temp: "+str(int(wristServ.read_temperature()))+" Deg")
+
+        #Voltage Info Box
+        self.voltLabelVariableWrist = Tkinter.StringVar()
+        voltLabelWrist = Tkinter.Label(self,textvariable=self.voltLabelVariableWrist,
+                              anchor="w",fg="white",bg="orange")
+        voltLabelWrist.grid(column=3,row=4,columnspan=2,sticky='EW')
+        self.voltLabelVariableWrist.set(u"Voltage: "+str(int(wristServ.read_voltage()))+" V")
+
+        #Proportional Info Box
+        self.propLabelVariableWrist = Tkinter.StringVar()
+        propLabelWrist = Tkinter.Label(self,textvariable=self.propLabelVariableWrist,
+                              anchor="w",fg="white",bg="blue")
+        propLabelWrist.grid(column=3,row=5,columnspan=2,sticky='EW')
+        self.propLabelVariableWrist.set(u"Proportional Gain: "+str(int(wristServ.read_propGain()))+" Units")
+
+        #Derivative Info Box
+        self.dervLabelVariableWrist = Tkinter.StringVar()
+        dervLabelWrist = Tkinter.Label(self,textvariable=self.dervLabelVariableWrist,
+                              anchor="w",fg="white",bg="red")
+        dervLabelWrist.grid(column=3,row=6,columnspan=2,sticky='EW')
+        self.dervLabelVariableWrist.set(u"Derivative Gain: "+str(int(wristServ.read_dervGain()))+" Units")
+
+        #Integral Info Box
+        self.integLabelVariableWrist = Tkinter.StringVar()
+        integLabelWrist = Tkinter.Label(self,textvariable=self.integLabelVariableWrist,
+                              anchor="w",fg="white",bg="purple")
+        integLabelWrist.grid(column=3,row=7,columnspan=2,sticky='EW')
+        self.integLabelVariableWrist.set(u"Integral Gain: "+str(int(wristServ.read_intGain()))+" Units")
+
+        #Speed Entry Box
+        self.speedEntryVariableWrist = Tkinter.StringVar()
+        self.speedEntryWrist = Tkinter.Entry(self,
+            textvariable=self.speedEntryVariableWrist)
+        self.speedEntryWrist.grid(column=0,row=8,sticky='EW')
+        self.speedEntryWrist.bind("<Return>", self.Wrist_OnPressEnter_Speed)
+        self.speedEntryVariableWrist.set(u"Enter Speed (rpm)")
+
+        #Speed Entry Button
+        speedEnterButtonWrist = Tkinter.Button(self,text=u"Enter",
+            command=self.Wrist_OnPressButton_Speed)
+        speedEnterButtonWrist.grid(column=1,row=8)
+
+        #Speed Info Box
+        self.speedLabelVariableWrist = Tkinter.StringVar()
+        speedLabelWrist = Tkinter.Label(self,textvariable=self.speedLabelVariableWrist,
+                              anchor="w",fg="white",bg="blue")
+        speedLabelWrist.grid(column=0,row=9,columnspan=2,sticky='EW')
+        self.speedLabelVariableWrist.set(u"Speed: " + self.speedLabelVariableWrist.get())
+
+    def initializeRotation(self):
+	    grasperCont_CCW = Tkinter.Button(self,text=u"Hand CCW",
+	        command=self.turningCallbacks(1))
+	    grasperCont_CCW.grid(column=1,row=10)	
+
+	    grasperCont_CW = Tkinter.Button(self,text=u"Hand CW",
+	        command=self.turningCallbacks(2))
+	    grasperCont_CW.grid(column=2,row=10)	
+
+	    wristCont_CCW = Tkinter.Button(self,text=u"Wrist CCW",
+	        command=self.turningCallbacks(3))
+	    wristCont_CCW.grid(column=1,row=11)	
+
+	    wristCont_CW = Tkinter.Button(self,text=u"Wrist CW",
+	        command=self.turningCallbacks(4))
+	    wristCont_CW.grid(column=2,row=11)	
+
+	    toggleRot = Tkinter.Button(self,text=u"Toggle Rotation",
+            command=self.turningCallbacks(5))
+	    toggleRot.grid(column=1,row=12,columnspan=2,sticky='EW')
+
+    def turningCallbacks(self,state):
+        if (state == 1):
+            global grasperContTurn_CCW
+            grasperContTurn_CCW = True
+        elif (state == 2):
+            global wristContTurn_CCW
+            wristContTurn_CCW = True
+        elif (state == 3):
+            global wristContTurn_CCW
+            wristContTurn_CCW = False
+        elif (state == 4):
+            global wristContTurn_CCW
+            wristContTurn_CCW = False
+        elif (state == 5):
+            global rotMode
+            rotMode = not rotMode
+
+# HAND METHODS
+
+    def Hand_OnPressButton_Angle(self):
+        grasperServ.move_angle(math.radians(float(self.angleEntryVariableHand.get())))
+        self.UpdateValsHand()
+        self.angleEntryHand.focus_set()
+        self.angleEntryHand.selection_range(0, Tkinter.END)
+
+    def Hand_OnPressEnter_Angle(self, event):
+        self.Hand_OnPressButton_Angle()
+
+    def Hand_OnPressButton_Speed(self):
+        wristServ.set_angvel( float(self.speedEntryVariableHand.get()) * (2 * math.pi) / 60.0 )
+        self.UpdateValsHand()
+        self.speedEntryHand.focus_set()
+        self.speedEntryHand.selection_range(0, Tkinter.END)
+
+    def Hand_OnPressEnter_Speed(self, event):
+        self.Hand_OnPressButton_Speed()
+
+    def UpdateValsHand(self):
+        self.angleLabelVariableHand.set(u"Angle: "+str(round(float(math.degrees(grasperServ.read_angle())),2))+" Deg")
+        self.loadLabelVariableHand.set(u"Load: "+str(int(grasperServ.read_load()))+" Units")
+        self.tempLabelVariableHand.set(u"Temp: "+str(int(grasperServ.read_temperature()))+" Deg")
+        self.voltLabelVariableHand.set(u"Voltage: "+str(int(grasperServ.read_voltage()))+" V")
+
+
+# WRIST METHODS
+
+    def Wrist_OnPressButton_Angle(self):
+        wristServ.move_angle(math.radians(float(self.angleEntryVariableWrist.get())))
+        self.UpdateValsWrist()
+        self.angleEntryWrist.focus_set()
+        self.angleEntryWrist.selection_range(0, Tkinter.END)
+
+    def Wrist_OnPressEnter_Angle(self, event):
+        self.Wrist_OnPressButton_Angle()
+
+    def Wrist_OnPressButton_Speed(self):
+        wristServ.set_angvel( float(self.speedEntryVariableWrist.get()) * (2 * math.pi) / 60.0 )
+        self.UpdateValsWrist()
+        self.speedEntryWrist.focus_set()
+        self.speedEntryWrist.selection_range(0, Tkinter.END)
+
+    def Wrist_OnPressEnter_Speed(self, event):
+        self.Wrist_OnPressButton_Speed()
+
+    def UpdateValsWrist(self):
+        self.angleLabelVariableWrist.set(u"Angle: "+str(round(float(math.degrees(wristServ.read_angle())),2))+" Deg")
+        self.loadLabelVariableWrist.set(u"Load: "+str(int(wristServ.read_load()))+" Units")
+        self.tempLabelVariableWrist.set(u"Temp: "+str(int(wristServ.read_temperature()))+" Deg")
+        self.voltLabelVariableWrist.set(u"Voltage: "+str(int(wristServ.read_voltage()))+" V")
+
+
+# CONTINUOUS TURN METHODS
+
+    def contTurnWrist(self):    
+        if (grasperContTurn_CCW and rotMode):
+            grasperServ.move_angle(math.radians(minAngleRot))
+
+        if (wristContTurn_CCW and rotMode):
+            wristServ.move_angle(math.radians(minAngleRot))
+
+        if (not grasperContTurn_CCW and rotMode):
+            grasperServ.move_angle(math.radians(-1.0 * minAngleRot))
+
+        if (not wristContTurn_CCW and rotMode):
+            wristServ.move_angle(math.radians(-1.0 * minAngleRot))
+
+        self.after(50,self.contTurnWrist)
+
+
+
+## KEYBOARD CHECKS#
+
+#    self.bind("w", grasperServ.init_cont_turn())
+#    self.bind("<KeyRelease-w>", grasperServ.kill_cont_turn())
+#    self.bind("s", ########)
+#    self.bind("<KeyRelease-s>", grasperServ.kill_cont_turn())
+#    self.bind("a", wristServ.init_cont_turn())
+#    self.bind("<KeyRelease-a>", wristServ.kill_cont_turn())
+#    self.bind("d", ########)
+#    self.bind("<KeyRelease-d>", wristServ.kill_cont_turn())
+
+
+
+if __name__ == "__main__":
+    global gui
+    gui = controlPanelGUI(None)
+    gui.title('Servo Control')
+    gui.after(50,gui.contTurnWrist)
+    gui.mainloop()
