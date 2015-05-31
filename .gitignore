@@ -1,3 +1,4 @@
 #Ignore the following types of files#
 *.pyc
 *.swp
+pyserial-2.7/
