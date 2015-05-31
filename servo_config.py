@@ -1,7 +1,7 @@
 import math
  
 servo_param = {
-    # Grasper Servo
+    # Upper Arm Servo
     1: { 
         'home_encoder': 0,
         'max_ang': math.radians( 120 ),
@@ -11,7 +11,7 @@ servo_param = {
 #		'flipped': False,
        },
 
-    # Wrist Servo
+    # Grasper Servo
     2: {
         'home_encoder': 0,
         'max_ang': math.radians( 110 ),

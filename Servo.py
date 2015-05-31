@@ -41,7 +41,7 @@ import string
 class USB2Dynamixel_Device():
     ''' Class that manages serial port contention between servos on same bus
     '''
-    def __init__( self, dev_name = '/dev/ttyUSB0', baudrate = 57600 ):
+    def __init__(self, dev_name = '/dev/ttyUSB0', baudrate = 57600):
         try:
             self.dev_name = string.atoi( dev_name ) # stores the serial port as 0-based integer for Windows
         except:
@@ -51,7 +51,7 @@ class USB2Dynamixel_Device():
         self.servo_dev = None
 
         self.acq_mutex()
-        self._open_serial( baudrate )
+        self._open_serial(baudrate)
         self.rel_mutex()
 
     def acq_mutex(self):

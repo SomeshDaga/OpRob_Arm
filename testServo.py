@@ -5,7 +5,7 @@ import sys
 import os
 
 sys.stdout.write("USB serial devices found:\n")
-os.system("ls /dev/tty*[uU]sb*")
+os.system("ls /dev/*[uU][sS][bB]*")
 sys.stdout.write("Choose the dev_name for Arm Servo: ")
 dev_name = raw_input()
 
