@@ -247,6 +247,11 @@ class Robotis_Servo():
     def move_angle(self, ang, angvel=None, blocking=True):
         ''' move to angle (radians)
         '''
+        #print "angle: "+ang
+        if not isinstance(ang, float) or not isinstance(ang, int):
+            ang= float(ang)
+        ang= math.radians(ang)
+
         if angvel == None:
             angvel = self.settings['max_speed']
 
